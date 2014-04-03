@@ -1,27 +1,23 @@
 import pygame
 from pygame import *
+from pygame.sprite import Sprite
 from collections import namedtuple
 
 #container to map tiles to IDs
 #id is the index of the sprite on the sprite sheet of all object sprites
 
-Object = namedtuple('Object','id')
+Object = namedtuple('Object',['type','id'])
 
 #each object must be assigned a corresponding value that will be the mapped value of the color used to call it
 #on the pixel map
-
-Object_types =
 #Wall object obstructs player movement
-#if 0, do not place object (place holder)
+#if 16777215 (White), do not place object (place holder)
 #room left for other objects to be added
 
-#key is the colour mapped value (1 is white, (256^3)-1 is black)
-{
-	0: Object('Nothing',0)
-	1: Object('Wall',1)
-}
+#index is the colour mapped value (0 is white, (256^3)-1 is black)
+Object_types = {0: Object('Wall',0)}
 
-class pixelmap(Sprite):
+class Pixelmap(Sprite):
 	
 	"""
 	a class which creates a functional game map from a given pixelmap
@@ -37,21 +33,31 @@ class pixelmap(Sprite):
 		
 		#load values into class parameters
 		
-		self.sprite_sheet = pygame.image.load(Image_file)
-		self.object_width = tile_width
-		self.object_height = tile_height
+		self._sprite_sheet = pygame.image.load(Image_file)
+		self._object_width = tile_width
+		self._object_height = tile_height
 
 		#initialize class parameters to be used later
 
-		self.map_width = None
-		self.map_height = None
-		self.objects = []
+		self._map_width = None
+		self._map_height = None
+		self._objects = []
+
+		Sprite.__init__(self)
 
 		#add required values for pygame's sprite class
 
 		self.image = None
 		self._base_image = None
 		self.rect = pygame.Rect(0,0,0,0)
+
+	def _tile_count(self):
+        
+		"""
+    	returns the number of pixels in the pixel map
+    	"""   
+
+		return self._map_width * self._map_height
 
 	def get_objects(self):
 
@@ -90,7 +96,8 @@ class pixelmap(Sprite):
 		map_objects = []
 		for y in range(self._map_height):
 			for x in range(self._map_width):
-				objects.append(map_image.get_at_mapped((x,y)))
+				objects.append(abs(1+map_image.get_at_mapped((x,y))))
+				self._objects.append(abs(1+map_image.get_at_mapped((x,y))))
 
 		return objects
 
@@ -123,14 +130,14 @@ class pixelmap(Sprite):
 		"""
 
 		x,y = tile_coords
-        return (
+		return (
             x * self._object_width + self.rect.x,
             y * self._object_height + self.rect.y
         )
 
-    def object_exists(self, tile_coords):
+	def object_exists(self, coords):
 
-    	"""
+		"""
     	utility function used in doctests and to avoid error messages
 
     	takes in tile coordinates
@@ -138,24 +145,56 @@ class pixelmap(Sprite):
     	returns a boolean value of whether the tile is valid
     	"""
 
-    	return not (
-    		object_types[self._objects[index]] == 0
-            coords[0] < 0 or
+		return not (
+    		coords[0] < 0 or
             coords[0] >= self._map_width or
             coords[1] < 0 or
             coords[1] >= self._map_height)
 
-    def _tile_position(self, index):
-        """
+	def _tile_position(self, index):
+		"""
         function used to convert between coordinates (array) and list, as returned by load_from_file
 
         takes index in list as input
 
         returns the position of the tile in the array
         """
-        return (index % self._map_width, index // self._map_width)
+		return (index % self._map_width, index // self._map_width)
 
+	def _render_base_image(self, redraw = []):
+		"""
+        Redraws all the tiles onto the base image.
+        """
+        # Create the empty surface
+		self._base_image = pygame.Surface(
+            (self._object_width * self._map_width,
+            self._object_height * self._map_height)
+        )
 
+        # draw in each tile
+		for i in range(self._tile_count()):
+			if self._objects[i] == 16777215:
+				pass
+			else:
 
+				object_id = Object_types[self._objects[i]].id
+            
+	            # get its position from its index in the list
+				x, y = self._tile_position(i)
+				x *= self._object_width
+				y *= self._object_height
+            
+            	# determine which subsection to draw based on the sprite id
+				area = pygame.Rect(
+    	            object_id * self._object_width,
+        	        0,
+            	    self._object_width,
+                	self._object_height
+	            )
+            
+    	        # draw the tile
+				if not self._objects[i] == 16777215:
+					self._base_image.blit(self._sprite_sheet, (x, y), area)
+            
 
 
