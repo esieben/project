@@ -2,6 +2,8 @@ import pygame
 from pygame import *
 from pygame.sprite import Sprite
 from collections import namedtuple
+from wall import *
+
 
 #container to map tiles to IDs
 #id is the index of the sprite on the sprite sheet of all object sprites
@@ -98,8 +100,7 @@ class Pixelmap(Sprite):
 			for x in range(self._map_width):
 				objects.append(abs(1+map_image.get_at_mapped((x,y))))
 				self._objects.append(abs(1+map_image.get_at_mapped((x,y))))
-
-		return objects
+		
 
 	def tile_coords(self, screen_coords):
 
@@ -161,6 +162,57 @@ class Pixelmap(Sprite):
         """
 		return (index % self._map_width, index // self._map_width)
 
+	def get_object_position(self, game, object_type):
+		"""
+		gives the pixel coordinates for the locations of all
+		objects of type "object_type"
+
+		input: object type
+
+		output: list of tuples of pixel coordinates
+		"""
+
+		position_list = []
+
+		for i in range(self._tile_count()):
+			if self._objects[i] == 16777215:
+				pass
+			else:
+
+				object_type = Object_types[self._objects[i]].type
+				            
+				# get its position from its index in the list
+				x, y = self._tile_position(i)
+				x *= self._object_width - ((self._map_width - 18) * game.screen_position_x)
+				y *= self._object_height - ((self._map_height - 18) * game.screen_position_y)
+
+				if object_type == object_type:
+					position_list.append((x,y))
+            
+		return position_list
+            
+
+    def refresh_sprite_group(self, game, object_type):
+    	"""
+    	clears the exisiting sprite group (if there is one)
+    	and refills it with the new sprites.
+    	used when screen changes
+
+    	input: game_object, type of object to be refreshed
+
+    	output: sprite group added to game object as "<game_object>.<object_type>.
+    	"""
+
+    	#create/clear game sprite group
+    	game.object_type = []
+    	#create/clear storage list
+    
+    	self.object_type = []
+    	self.object_type = get_object_position(self, game, object_type)
+    	for x,y in self.object_type:
+
+
+
 	def _render_base_image(self, redraw = []):
 		"""
         Redraws all the tiles onto the base image.
@@ -195,6 +247,4 @@ class Pixelmap(Sprite):
     	        # draw the tile
 				if not self._objects[i] == 16777215:
 					self._base_image.blit(self._sprite_sheet, (x, y), area)
-            
-
-
+           
